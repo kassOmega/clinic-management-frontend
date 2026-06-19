@@ -3,7 +3,11 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { ROLE_LABELS } from "../../types";
 import { IconChevronDown, IconLogout } from "../icons";
 
-export function Header() {
+interface Props {
+  onMenuClick: () => void;
+}
+
+export function Header({ onMenuClick }: Props) {
   const { user, logout } = usePermissions();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -21,9 +25,29 @@ export function Header() {
   if (!user) return null;
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-30">
-      <div>
-        <h2 className="text-sm text-slate-500">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        {/* Mobile menu button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+          aria-label="Toggle sidebar"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
+          </svg>
+        </button>
+        <h2 className="text-sm text-slate-500 hidden sm:block">
           {ROLE_LABELS[user.role]} Portal
         </h2>
       </div>

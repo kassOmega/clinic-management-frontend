@@ -57,19 +57,18 @@ export default function Reports() {
     }))
     .filter((d) => d.value > 0);
 
-  const paymentData = [
-    { name: "Paid", value: payments.filter((p) => p.status === "PAID").length },
-    {
-      name: "Pending",
-      value: payments.filter((p) => p.status === "PENDING").length,
+  const orderStatusData = orders.reduce<Record<string, typeof orders>>(
+    (acc, o) => {
+      (acc[o.status] ??= []).push(o);
+      return acc;
     },
-  ];
+    {},
+  );
 
-  const orderStatusData = Object.groupBy(orders, (o) => o.status);
   const orderPieData = Object.entries(orderStatusData).map(([status, os]) => ({
     name:
       ORDER_STATUS_LABELS[status as keyof typeof ORDER_STATUS_LABELS] || status,
-    value: (os as any[]).length,
+    value: os.length,
   }));
 
   const revenueByType = [

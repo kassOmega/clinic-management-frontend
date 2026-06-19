@@ -847,6 +847,7 @@ export const store = {
   // Users
   getUsers: () => [...users],
   getUserById: (id: number) => users.find((u) => u.id === id),
+  getUserByEmail: (email: string) => users.find((u) => u.email === email),
   addUser: (data: Omit<User, "id">) => {
     const u = { ...data, id: nextUserId++ };
     users.push(u);
@@ -1011,6 +1012,9 @@ export const store = {
     totalLabResults: labResults.length,
     totalRadioResults: radiologyResults.length,
     totalPrescriptions: prescriptions.length,
-    // patientsByStatus: Object.groupBy(patients, (p) => p.status),
+    patientsByStatus: patients.reduce<Record<string, Patient[]>>((acc, p) => {
+      (acc[p.status] ??= []).push(p);
+      return acc;
+    }, {}),
   }),
 };

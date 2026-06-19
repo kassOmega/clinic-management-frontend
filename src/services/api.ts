@@ -191,7 +191,3 @@ export const api = {
     return store.getStats();
   },
 };
-
-// Fix: add getUserByEmail to store
-(store as any).getUserByEmail = (email: string) =>
-  store.getUsers().find((u) => u.email === email);

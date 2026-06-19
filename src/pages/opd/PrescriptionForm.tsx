@@ -110,7 +110,7 @@ export default function PrescriptionForm() {
       addToast("Prescription created successfully", "success");
       navigate("/opd/queue");
     },
-    onError: (err: any) =>
+    onError: (err) =>
       addToast(err.message || "Failed to create prescription", "error"),
   });
 

@@ -1,15 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useToast } from "../../context/ToastContext";
-import { usePermissions } from "../../hooks/usePermissions";
-import { api } from "../../services/api";
-
 import { IconCheck, IconScan } from "../../components/icons";
 import { Badge, statusToVariant } from "../../components/UI/Badge";
 import { Button } from "../../components/UI/Button";
 import { Card, CardHeader, CardTitle } from "../../components/UI/Card";
-
+import { useToast } from "../../context/ToastContext";
+import { usePermissions } from "../../hooks/usePermissions";
+import { api } from "../../services/api";
 import { ORDER_STATUS_LABELS } from "../../types";
 
 interface RadioResultForm {
@@ -25,7 +23,7 @@ export default function RadiologyResultEntry() {
   const queryClient = useQueryClient();
 
   const orderId = Number(searchParams.get("orderId"));
-  const [results, setResults] = useState<Record<string, RadioResultForm>>({});
+  const [edits, setEdits] = useState<Record<string, RadioResultForm>>({});
 
   const { data: orders } = useQuery({
     queryKey: ["orders"],
@@ -46,24 +44,32 @@ export default function RadiologyResultEntry() {
   const patient = patients?.find((p) => p.id === order?.patientId);
   const radioTests = order?.tests.filter((t) => t.type === "radiology") || [];
 
-  useEffect(() => {
-    if (existingResults) {
-      const mapped: Record<string, RadioResultForm> = {};
-      existingResults.forEach((r) => {
-        mapped[r.testId] = { findings: r.findings, impression: r.impression };
-      });
-      setResults(mapped);
-    }
+  // Derive existing values from query data — no useEffect needed
+  const existingValues = useMemo<Record<string, RadioResultForm>>(() => {
+    if (!existingResults) return {};
+    const mapped: Record<string, RadioResultForm> = {};
+    existingResults.forEach((r) => {
+      mapped[r.testId] = { findings: r.findings, impression: r.impression };
+    });
+    return mapped;
   }, [existingResults]);
+
+  // Merge existing values with user edits
+  const getResult = (testId: string): RadioResultForm =>
+    edits[testId] ?? existingValues[testId] ?? { findings: "", impression: "" };
 
   const updateResult = (
     testId: string,
     field: "findings" | "impression",
     value: string,
   ) => {
-    setResults((prev) => ({
+    setEdits((prev) => ({
       ...prev,
-      [testId]: { ...prev[testId], [field]: value },
+      [testId]: {
+        ...(prev[testId] ??
+          existingValues[testId] ?? { findings: "", impression: "" }),
+        [field]: value,
+      },
     }));
   };
 
@@ -71,8 +77,8 @@ export default function RadiologyResultEntry() {
     mutationFn: async () => {
       if (!order || !user) return;
       for (const test of radioTests) {
-        const form = results[test.testId];
-        if (!form?.findings || !form?.impression || test.status === "COMPLETED")
+        const form = getResult(test.testId);
+        if (!form.findings || !form.impression || test.status === "COMPLETED")
           continue;
 
         await api.createRadiologyResult({
@@ -171,10 +177,7 @@ export default function RadiologyResultEntry() {
         <div className="space-y-6">
           {radioTests.map((test) => {
             const isCompleted = test.status === "COMPLETED";
-            const form = results[test.testId] || {
-              findings: "",
-              impression: "",
-            };
+            const form = getResult(test.testId);
             return (
               <div
                 key={test.testId}
