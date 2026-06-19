@@ -41,7 +41,7 @@ export default function Login() {
       login(user);
       addToast(`Welcome back, ${user.name}`, "success");
       navigate("/dashboard");
-    } catch (err) {
+    } catch (err: any) {
       addToast(err.message || "Login failed", "error");
     } finally {
       setLoading(false);
