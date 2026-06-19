@@ -1,122 +1,164 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AppLayout } from "./components/layout/AppLayout";
+import { RoleGuard } from "./components/layout/RoleGuard";
+import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Reports from "./pages/admin/Reports";
+import TestManagement from "./pages/admin/TestManagement";
+import UserManagement from "./pages/admin/UserManagement";
+import Dashboard from "./pages/Dashboard";
+import LabOrders from "./pages/lab/LabOrders";
+import LabResultEntry from "./pages/lab/LabResultEntry";
+import Login from "./pages/Login";
+import InvestigationOrderForm from "./pages/opd/InvestigationOrderForm";
+import PatientQueue from "./pages/opd/PatientQueue";
+import PrescriptionForm from "./pages/opd/PrescriptionForm";
+import RadiologyOrders from "./pages/radiology/RadiologyOrders";
+import RadiologyResultEntry from "./pages/radiology/RadiologyResultEntry";
+import PatientList from "./pages/reception/PatientList";
+import PatientRegistration from "./pages/reception/PatientRegistration";
+import PaymentProcessing from "./pages/reception/PaymentProcessing";
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 0, retry: false } },
+});
+
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<AppLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
 
-      <div className="ticks"></div>
+                {/* Reception routes */}
+                <Route
+                  path="/reception/register"
+                  element={
+                    <RoleGuard allowedRoles={["reception", "admin"]}>
+                      <PatientRegistration />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/reception/patients"
+                  element={
+                    <RoleGuard allowedRoles={["reception", "admin"]}>
+                      <PatientList />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/reception/payments"
+                  element={
+                    <RoleGuard allowedRoles={["reception", "admin"]}>
+                      <PaymentProcessing />
+                    </RoleGuard>
+                  }
+                />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+                {/* OPD routes */}
+                <Route
+                  path="/opd/queue"
+                  element={
+                    <RoleGuard allowedRoles={["opd", "admin"]}>
+                      <PatientQueue />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/opd/investigations"
+                  element={
+                    <RoleGuard allowedRoles={["opd", "admin"]}>
+                      <InvestigationOrderForm />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/opd/prescriptions"
+                  element={
+                    <RoleGuard allowedRoles={["opd", "admin"]}>
+                      <PrescriptionForm />
+                    </RoleGuard>
+                  }
+                />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+                {/* Lab routes */}
+                <Route
+                  path="/lab/orders"
+                  element={
+                    <RoleGuard allowedRoles={["lab", "admin"]}>
+                      <LabOrders />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/lab/results"
+                  element={
+                    <RoleGuard allowedRoles={["lab", "admin"]}>
+                      <LabResultEntry />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Radiology routes */}
+                <Route
+                  path="/radiology/orders"
+                  element={
+                    <RoleGuard allowedRoles={["radiology", "admin"]}>
+                      <RadiologyOrders />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/radiology/results"
+                  element={
+                    <RoleGuard allowedRoles={["radiology", "admin"]}>
+                      <RadiologyResultEntry />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Admin routes */}
+                <Route
+                  path="/admin/users"
+                  element={
+                    <RoleGuard allowedRoles={["admin"]}>
+                      <UserManagement />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/tests"
+                  element={
+                    <RoleGuard allowedRoles={["admin"]}>
+                      <TestManagement />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <RoleGuard allowedRoles={["admin"]}>
+                      <Reports />
+                    </RoleGuard>
+                  }
+                />
+
+                <Route
+                  path="*"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
-
-export default App
