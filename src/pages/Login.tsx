@@ -41,7 +41,7 @@ export default function Login() {
       login(user);
       addToast(`Welcome back, ${user.name}`, "success");
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       addToast(err.message || "Login failed", "error");
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-white text-2xl font-bold font-[family-name:var(--font-display)]">
-                MedFlow
+                KASS
               </h1>
               <p className="text-brand-300 text-xs uppercase tracking-widest">
                 Clinic Management
@@ -106,7 +106,7 @@ export default function Login() {
               <IconFlask className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-white text-xl font-bold font-[family-name:var(--font-display)]">
-              MedFlow
+              KASS
             </h1>
           </div>
 

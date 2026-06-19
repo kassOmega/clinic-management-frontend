@@ -118,7 +118,7 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="text-white font-bold text-sm font-[family-name:var(--font-display)]">
-            MedFlow
+            KASS
           </h1>
           <p className="text-slate-500 text-[10px] uppercase tracking-wider">
             Clinic Management
