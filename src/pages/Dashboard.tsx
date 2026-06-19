@@ -267,8 +267,8 @@ export default function Dashboard() {
                     border: "1px solid #e2e8f0",
                     fontSize: "12px",
                   }}
-                  formatter={(value: number) => [
-                    `ETB ${value.toLocaleString()}`,
+                  formatter={(value) => [
+                    `ETB ${Number(value).toLocaleString()}`,
                     "Amount",
                   ]}
                 />

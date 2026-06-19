@@ -216,10 +216,7 @@ export default function Reports() {
                     border: "1px solid #e2e8f0",
                     fontSize: "12px",
                   }}
-                  formatter={(v: number) => [
-                    `ETB ${v.toLocaleString()}`,
-                    "Revenue",
-                  ]}
+                  formatter={(v) => [`ETB ${v.toLocaleString()}`, "Revenue"]}
                 />
                 <Bar dataKey="value" fill="#0d9488" radius={[6, 6, 0, 0]} />
               </BarChart>
