@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --color-brand-50: #effefa;
+  --color-brand-100: #c8fff4;
+  --color-brand-200: #91fee9;
+  --color-brand-300: #52f5d9;
+  --color-brand-400: #1ee0c3;
+  --color-brand-500: #06c4a9;
+  --color-brand-600: #019e8c;
+  --color-brand-700: #067e71;
+  --color-brand-800: #0b645b;
+  --color-brand-900: #0e534b;
+  --color-brand-950: #003330;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -65,34 +81,49 @@
 }
 
 body {
-  margin: 0;
+  font-family: var(--font-body);
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Smooth page transitions */
+main {
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+
 p {
   margin: 0;
 }
