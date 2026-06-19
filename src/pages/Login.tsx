@@ -15,6 +15,7 @@ const roleAccounts: Record<Role, { email: string; password: string }> = {
   opd: { email: "opd@clinic.com", password: "opd" },
   lab: { email: "lab@clinic.com", password: "lab" },
   radiology: { email: "radio@clinic.com", password: "radio" },
+  pharmacy: { email: "pharmacy@clinic.com", password: "pharmacy" },
 };
 
 export default function Login() {

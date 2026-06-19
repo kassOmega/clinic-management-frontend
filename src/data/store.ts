@@ -2,10 +2,12 @@ import type {
   InvestigationOrder,
   LabResult,
   OrderStatus,
+  OrderTest,
   Patient,
   PatientStatus,
   Payment,
   Prescription,
+  PrescriptionStatus,
   RadiologyResult,
   TestCatalog,
   TestStatus,
@@ -52,6 +54,14 @@ const users: User[] = [
     email: "radio@clinic.com",
     role: "radiology",
     phone: "0911000005",
+    active: true,
+  },
+  {
+    id: 6,
+    name: "Amina Hussen",
+    email: "pharmacy@clinic.com",
+    role: "pharmacy",
+    phone: "0911000006",
     active: true,
   },
 ];
@@ -648,6 +658,7 @@ const prescriptions: Prescription[] = [
       },
     ],
     notes: "Fatigue likely due to vitamin D deficiency. Follow up in 1 month.",
+    status: "DISPENSED",
     createdAt: "2025-01-10T11:00:00",
     createdBy: 3,
   },
@@ -671,11 +682,11 @@ const prescriptions: Prescription[] = [
     ],
     notes:
       "Fatty liver disease. Dietary modification advised. Reduce fat intake. Follow up with LFT in 2 months.",
+    status: "PENDING",
     createdAt: "2025-01-10T11:30:00",
     createdBy: 3,
   },
 ];
-
 // ── Payments ───────────────────────────────────────────────────
 const payments: Payment[] = [
   // Registration payments
@@ -989,7 +1000,59 @@ export const store = {
     prescriptions.push(p);
     return p;
   },
+  addTestsToOrder: (
+    orderId: number,
+    newTests: OrderTest[],
+    processedBy: number,
+  ) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return order;
 
+    const additionalTotal = newTests.reduce((sum, t) => sum + t.price, 0);
+
+    order.tests.push(...newTests);
+    order.totalPrice += additionalTotal;
+    order.status = "PENDING_PAYMENT";
+
+    payments.push({
+      id: nextPaymentId++,
+      patientId: order.patientId,
+      orderId: order.id,
+      amount: additionalTotal,
+      type: "investigation",
+      status: "PENDING",
+      createdAt: new Date().toISOString(),
+      processedBy,
+    });
+
+    const patient = patients.find((p) => p.id === order.patientId);
+    if (patient) patient.status = "PENDING_PAYMENT";
+
+    return order;
+  },
+
+  updateLabResult: (resultId: number, data: { value: string }) => {
+    const r = labResults.find((lr) => lr.id === resultId);
+    if (r) r.value = data.value;
+    return r;
+  },
+
+  updateRadiologyResult: (
+    resultId: number,
+    data: { findings: string; impression: string },
+  ) => {
+    const r = radiologyResults.find((rr) => rr.id === resultId);
+    if (r) {
+      r.findings = data.findings;
+      r.impression = data.impression;
+    }
+    return r;
+  },
+  updatePrescriptionStatus: (id: number, status: PrescriptionStatus) => {
+    const p = prescriptions.find((px) => px.id === id);
+    if (p) p.status = status;
+    return p;
+  },
   // Stats
   getStats: () => ({
     totalPatients: patients.length,

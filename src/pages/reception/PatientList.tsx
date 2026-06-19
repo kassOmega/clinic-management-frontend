@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { IconSearch } from "../../components/icons";
+import { useNavigate } from "react-router-dom";
+import { IconEye, IconSearch } from "../../components/icons";
 import { Badge, statusToVariant } from "../../components/UI/Badge";
 import { Card } from "../../components/UI/Card";
 import { api } from "../../services/api";
@@ -8,6 +9,7 @@ import { PATIENT_STATUS_LABELS } from "../../types";
 
 export default function PatientList() {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
   const { data: patients } = useQuery({
     queryKey: ["patients"],
     queryFn: api.getPatients,
@@ -71,6 +73,7 @@ export default function PatientList() {
                 <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
                   Registered
                 </th>
+                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -101,6 +104,17 @@ export default function PatientList() {
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-500">
                     {new Date(p.registrationDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() =>
+                        navigate(`/reception/history?patientId=${p.id}`)
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                    >
+                      <IconEye className="w-3.5 h-3.5" />
+                      History
+                    </button>
                   </td>
                 </tr>
               ))}

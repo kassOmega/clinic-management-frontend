@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { IconCheck, IconFlask } from "../../components/icons";
+import { useToast } from "../../context/ToastContext";
+import { usePermissions } from "../../hooks/usePermissions";
+import { api } from "../../services/api";
+
+import { IconCheck, IconFlask, IconX } from "../../components/icons";
 import { Badge, statusToVariant } from "../../components/UI/Badge";
 import { Button } from "../../components/UI/Button";
 import { Card, CardHeader, CardTitle } from "../../components/UI/Card";
 import { Input } from "../../components/UI/Input";
-import { useToast } from "../../context/ToastContext";
-import { usePermissions } from "../../hooks/usePermissions";
-import { api } from "../../services/api";
 import { ORDER_STATUS_LABELS } from "../../types";
 
 export default function LabResultEntry() {
@@ -20,6 +21,7 @@ export default function LabResultEntry() {
 
   const orderId = Number(searchParams.get("orderId"));
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [editingTests, setEditingTests] = useState<Set<string>>(new Set());
 
   const { data: orders } = useQuery({
     queryKey: ["orders"],
@@ -40,7 +42,7 @@ export default function LabResultEntry() {
   const patient = patients?.find((p) => p.id === order?.patientId);
   const labTests = order?.tests.filter((t) => t.type === "lab") || [];
 
-  // Derive existing values from query data — no useEffect needed
+  // Derive existing values from query data
   const existingValues = useMemo<Record<string, string>>(() => {
     if (!existingResults) return {};
     const mapped: Record<string, string> = {};
@@ -56,35 +58,74 @@ export default function LabResultEntry() {
   const setResult = (testId: string, value: string) =>
     setEdits((prev) => ({ ...prev, [testId]: value }));
 
+  const toggleEdit = (testId: string) => {
+    setEditingTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(testId)) {
+        next.delete(testId);
+        // Revert edits when cancelling
+        setEdits((prev) => {
+          const next = { ...prev };
+          delete next[testId];
+          return next;
+        });
+      } else {
+        next.add(testId);
+      }
+      return next;
+    });
+  };
+
+  const hasAnyChanges = labTests.some((t) => {
+    if (t.status === "COMPLETED") {
+      if (!editingTests.has(t.testId)) return false;
+      const existingResult = existingResults?.find(
+        (r) => r.testId === t.testId,
+      );
+      return existingResult
+        ? getResult(t.testId) !== existingResult.value
+        : false;
+    }
+    return getResult(t.testId) !== "";
+  });
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!order || !user) return;
       for (const test of labTests) {
         const value = getResult(test.testId);
-        if (!value || test.status === "COMPLETED") continue;
 
-        await api.createLabResult({
-          orderId: order.id,
-          patientId: order.patientId,
-          testId: test.testId,
-          testName: test.testName,
-          value,
-          unit: test.unit || "",
-          referenceRange: test.referenceRange || "",
-          createdAt: new Date().toISOString(),
-          createdBy: user.id,
-        });
-
-        await api.updateOrderTestStatus(order.id, test.testId, "COMPLETED");
+        if (test.status === "COMPLETED") {
+          // Only update if the value actually changed
+          const existingResult = existingResults?.find(
+            (r) => r.testId === test.testId,
+          );
+          if (existingResult && value !== existingResult.value) {
+            await api.updateLabResult(existingResult.id, { value });
+          }
+        } else {
+          // Create new result
+          if (!value) continue;
+          await api.createLabResult({
+            orderId: order.id,
+            patientId: order.patientId,
+            testId: test.testId,
+            testName: test.testName,
+            value,
+            unit: test.unit || "",
+            referenceRange: test.referenceRange || "",
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          });
+          await api.updateOrderTestStatus(order.id, test.testId, "COMPLETED");
+        }
       }
       await api.recalcOrderStatus(order.id);
 
-      // Check if all tests in order (including radiology) are done
       const updatedOrder = await api.getOrderById(order.id);
       if (updatedOrder?.status === "RESULTS_READY") {
         await api.updatePatientStatus(order.patientId, "TESTS_COMPLETED");
       } else if (updatedOrder?.status === "IN_PROGRESS") {
-        // Some radio tests still pending
         await api.updatePatientStatus(order.patientId, "IN_LAB");
       }
     },
@@ -93,6 +134,8 @@ export default function LabResultEntry() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["labResults"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
+      setEdits({});
+      setEditingTests(new Set());
       addToast("Lab results saved successfully", "success");
       navigate("/lab/orders");
     },
@@ -128,7 +171,7 @@ export default function LabResultEntry() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 font-[family-name:var(--font-display)]">
-          Enter Lab Results
+          Lab Results
         </h1>
         <p className="text-slate-500 text-sm mt-1">Order #{order.id}</p>
       </div>
@@ -162,10 +205,19 @@ export default function LabResultEntry() {
         <div className="space-y-6">
           {labTests.map((test) => {
             const isCompleted = test.status === "COMPLETED";
+            const isEditing = editingTests.has(test.testId);
+            const isReadOnly = isCompleted && !isEditing;
+
             return (
               <div
                 key={test.testId}
-                className={`p-4 rounded-lg border ${isCompleted ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50 border-slate-200"}`}
+                className={`p-4 rounded-lg border ${
+                  isCompleted && !isEditing
+                    ? "bg-emerald-50/50 border-emerald-200"
+                    : isEditing
+                      ? "bg-amber-50/50 border-amber-300 ring-2 ring-amber-400/20"
+                      : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -178,7 +230,32 @@ export default function LabResultEntry() {
                       </p>
                     )}
                   </div>
-                  {isCompleted && <Badge variant="success">Completed</Badge>}
+                  <div className="flex items-center gap-2">
+                    {isCompleted && !isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleEdit(test.testId)}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                    {isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleEdit(test.testId)}
+                        className="text-slate-500"
+                      >
+                        <IconX className="w-3 h-3" />
+                        Cancel
+                      </Button>
+                    )}
+                    {isCompleted && !isEditing && (
+                      <Badge variant="success">Completed</Badge>
+                    )}
+                    {isEditing && <Badge variant="warning">Editing</Badge>}
+                  </div>
                 </div>
                 <div className="flex items-end gap-3">
                   <div className="flex-1">
@@ -187,7 +264,7 @@ export default function LabResultEntry() {
                       value={getResult(test.testId)}
                       onChange={(e) => setResult(test.testId, e.target.value)}
                       placeholder="Enter result value"
-                      disabled={isCompleted}
+                      disabled={isReadOnly}
                     />
                   </div>
                   {test.unit && test.unit !== "-" && (
@@ -210,7 +287,7 @@ export default function LabResultEntry() {
           <Button
             onClick={() => submitMutation.mutate()}
             loading={submitMutation.isPending}
-            disabled={labTests.every((t) => t.status === "COMPLETED")}
+            disabled={!hasAnyChanges}
           >
             <IconCheck className="w-4 h-4" />
             Save Results

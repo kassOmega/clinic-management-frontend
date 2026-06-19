@@ -3,10 +3,12 @@ import type {
   InvestigationOrder,
   LabResult,
   OrderStatus,
+  OrderTest,
   Patient,
   PatientStatus,
   Payment,
   Prescription,
+  PrescriptionStatus,
   RadiologyResult,
   TestCatalog,
   TestStatus,
@@ -184,7 +186,29 @@ export const api = {
     await delay();
     return store.addPrescription(data);
   },
-
+  addTestsToOrder: async (
+    orderId: number,
+    tests: OrderTest[],
+    processedBy: number,
+  ) => {
+    await delay();
+    return store.addTestsToOrder(orderId, tests, processedBy);
+  },
+  updateLabResult: async (resultId: number, data: { value: string }) => {
+    await delay();
+    return store.updateLabResult(resultId, data)!;
+  },
+  updateRadiologyResult: async (
+    resultId: number,
+    data: { findings: string; impression: string },
+  ) => {
+    await delay();
+    return store.updateRadiologyResult(resultId, data)!;
+  },
+  updatePrescriptionStatus: async (id: number, status: PrescriptionStatus) => {
+    await delay();
+    return store.updatePrescriptionStatus(id, status)!;
+  },
   // Stats
   getStats: async () => {
     await delay();

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { IconCheck, IconScan } from "../../components/icons";
+import { IconCheck, IconScan, IconX } from "../../components/icons";
 import { Badge, statusToVariant } from "../../components/UI/Badge";
 import { Button } from "../../components/UI/Button";
 import { Card, CardHeader, CardTitle } from "../../components/UI/Card";
@@ -24,6 +24,7 @@ export default function RadiologyResultEntry() {
 
   const orderId = Number(searchParams.get("orderId"));
   const [edits, setEdits] = useState<Record<string, RadioResultForm>>({});
+  const [editingTests, setEditingTests] = useState<Set<string>>(new Set());
 
   const { data: orders } = useQuery({
     queryKey: ["orders"],
@@ -44,7 +45,7 @@ export default function RadiologyResultEntry() {
   const patient = patients?.find((p) => p.id === order?.patientId);
   const radioTests = order?.tests.filter((t) => t.type === "radiology") || [];
 
-  // Derive existing values from query data — no useEffect needed
+  // Derive existing values from query data
   const existingValues = useMemo<Record<string, RadioResultForm>>(() => {
     if (!existingResults) return {};
     const mapped: Record<string, RadioResultForm> = {};
@@ -73,26 +74,77 @@ export default function RadiologyResultEntry() {
     }));
   };
 
+  const toggleEdit = (testId: string) => {
+    setEditingTests((prev) => {
+      const next = new Set(prev);
+      if (next.has(testId)) {
+        next.delete(testId);
+        // Revert edits when cancelling
+        setEdits((prev) => {
+          const next = { ...prev };
+          delete next[testId];
+          return next;
+        });
+      } else {
+        next.add(testId);
+      }
+      return next;
+    });
+  };
+
+  const hasAnyChanges = radioTests.some((t) => {
+    if (t.status === "COMPLETED") {
+      if (!editingTests.has(t.testId)) return false;
+      const existingResult = existingResults?.find(
+        (r) => r.testId === t.testId,
+      );
+      if (!existingResult) return false;
+      const current = getResult(t.testId);
+      return (
+        current.findings !== existingResult.findings ||
+        current.impression !== existingResult.impression
+      );
+    }
+    const current = getResult(t.testId);
+    return current.findings !== "" || current.impression !== "";
+  });
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!order || !user) return;
       for (const test of radioTests) {
         const form = getResult(test.testId);
-        if (!form.findings || !form.impression || test.status === "COMPLETED")
-          continue;
 
-        await api.createRadiologyResult({
-          orderId: order.id,
-          patientId: order.patientId,
-          testId: test.testId,
-          testName: test.testName,
-          findings: form.findings,
-          impression: form.impression,
-          createdAt: new Date().toISOString(),
-          createdBy: user.id,
-        });
-
-        await api.updateOrderTestStatus(order.id, test.testId, "COMPLETED");
+        if (test.status === "COMPLETED") {
+          // Only update if values actually changed
+          const existingResult = existingResults?.find(
+            (r) => r.testId === test.testId,
+          );
+          if (
+            existingResult &&
+            (form.findings !== existingResult.findings ||
+              form.impression !== existingResult.impression)
+          ) {
+            await api.updateRadiologyResult(existingResult.id, {
+              findings: form.findings,
+              impression: form.impression,
+            });
+          }
+        } else {
+          // Create new result
+          if (!form.findings || !form.impression) continue;
+          await api.createRadiologyResult({
+            orderId: order.id,
+            patientId: order.patientId,
+            testId: test.testId,
+            testName: test.testName,
+            findings: form.findings,
+            impression: form.impression,
+            createdAt: new Date().toISOString(),
+            createdBy: user.id,
+          });
+          await api.updateOrderTestStatus(order.id, test.testId, "COMPLETED");
+        }
       }
       await api.recalcOrderStatus(order.id);
 
@@ -108,6 +160,8 @@ export default function RadiologyResultEntry() {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["radioResults"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
+      setEdits({});
+      setEditingTests(new Set());
       addToast("Radiology results saved successfully", "success");
       navigate("/radiology/orders");
     },
@@ -143,7 +197,7 @@ export default function RadiologyResultEntry() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 font-[family-name:var(--font-display)]">
-          Enter Radiology Results
+          Radiology Results
         </h1>
         <p className="text-slate-500 text-sm mt-1">Order #{order.id}</p>
       </div>
@@ -177,17 +231,51 @@ export default function RadiologyResultEntry() {
         <div className="space-y-6">
           {radioTests.map((test) => {
             const isCompleted = test.status === "COMPLETED";
+            const isEditing = editingTests.has(test.testId);
+            const isReadOnly = isCompleted && !isEditing;
             const form = getResult(test.testId);
+
             return (
               <div
                 key={test.testId}
-                className={`p-4 rounded-lg border ${isCompleted ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50 border-slate-200"}`}
+                className={`p-4 rounded-lg border ${
+                  isCompleted && !isEditing
+                    ? "bg-emerald-50/50 border-emerald-200"
+                    : isEditing
+                      ? "bg-amber-50/50 border-amber-300 ring-2 ring-amber-400/20"
+                      : "bg-slate-50 border-slate-200"
+                }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-semibold text-slate-900">
                     {test.testName}
                   </h4>
-                  {isCompleted && <Badge variant="success">Completed</Badge>}
+                  <div className="flex items-center gap-2">
+                    {isCompleted && !isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleEdit(test.testId)}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                    {isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleEdit(test.testId)}
+                        className="text-slate-500"
+                      >
+                        <IconX className="w-3 h-3" />
+                        Cancel
+                      </Button>
+                    )}
+                    {isCompleted && !isEditing && (
+                      <Badge variant="success">Completed</Badge>
+                    )}
+                    {isEditing && <Badge variant="warning">Editing</Badge>}
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <div className="space-y-1">
@@ -201,7 +289,7 @@ export default function RadiologyResultEntry() {
                       }
                       rows={3}
                       placeholder="Describe the radiological findings..."
-                      disabled={isCompleted}
+                      disabled={isReadOnly}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors resize-none disabled:bg-slate-50 disabled:text-slate-500"
                     />
                   </div>
@@ -216,7 +304,7 @@ export default function RadiologyResultEntry() {
                       }
                       rows={2}
                       placeholder="Radiological impression / diagnosis..."
-                      disabled={isCompleted}
+                      disabled={isReadOnly}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-colors resize-none disabled:bg-slate-50 disabled:text-slate-500"
                     />
                   </div>
@@ -236,7 +324,7 @@ export default function RadiologyResultEntry() {
           <Button
             onClick={() => submitMutation.mutate()}
             loading={submitMutation.isPending}
-            disabled={radioTests.every((t) => t.status === "COMPLETED")}
+            disabled={!hasAnyChanges}
           >
             <IconCheck className="w-4 h-4" />
             Save Results

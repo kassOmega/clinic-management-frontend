@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { IconPill, IconPlus, IconX } from "../../components/icons";
-
 import { Badge, statusToVariant } from "../../components/UI/Badge";
 import { Button } from "../../components/UI/Button";
 import { Card, CardHeader, CardTitle } from "../../components/UI/Card";
@@ -85,6 +84,8 @@ export default function PrescriptionForm() {
     );
   };
 
+  const hasPrescription = patientOrders.some((o) => o.status === "COMPLETED");
+
   const mutation = useMutation({
     mutationFn: async () => {
       const patientId = Number(selectedPatientId);
@@ -95,6 +96,7 @@ export default function PrescriptionForm() {
         orderId: completedOrder.id,
         medicines: medicines.filter((m) => m.name),
         notes,
+        status: "PENDING",
         createdAt: new Date().toISOString(),
         createdBy: user!.id,
       });
@@ -107,26 +109,15 @@ export default function PrescriptionForm() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
-      addToast("Prescription created successfully", "success");
+      addToast("Prescription created. Patient sent to pharmacy.", "success");
       navigate("/opd/queue");
     },
-    onError: (err) =>
-      addToast(err.message || "Failed to create prescription", "error"),
-  });
-
-  const completeMutation = useMutation({
-    mutationFn: async () => {
-      await api.updatePatientStatus(Number(selectedPatientId), "COMPLETED");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patients"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-      addToast("Patient assessment completed", "success");
-      navigate("/opd/queue");
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to create prescription";
+      addToast(message, "error");
     },
   });
-
-  const hasPrescription = patientOrders.some((o) => o.status === "COMPLETED");
 
   if (!patients || !orders) return null;
 
@@ -137,7 +128,7 @@ export default function PrescriptionForm() {
           Prescription
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          Create prescription and complete patient assessment
+          Create prescription and send patient to pharmacy
         </p>
       </div>
 
@@ -291,15 +282,10 @@ export default function PrescriptionForm() {
 
             {hasPrescription ? (
               <div className="text-center py-6">
-                <p className="text-sm text-slate-500 mb-4">
-                  Prescription already created for this patient.
+                <p className="text-sm text-slate-500">
+                  Prescription already created for this patient and sent to
+                  pharmacy.
                 </p>
-                <Button
-                  onClick={() => completeMutation.mutate()}
-                  loading={completeMutation.isPending}
-                >
-                  Complete Patient Assessment
-                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -353,12 +339,13 @@ export default function PrescriptionForm() {
                           placeholder="e.g. Three times daily"
                         />
                         <Input
-                          label="Duration"
+                          label="Duration (total days)"
+                          type="number"
                           value={med.duration}
                           onChange={(e) =>
                             updateMedicine(index, "duration", e.target.value)
                           }
-                          placeholder="e.g. 7 days"
+                          placeholder="e.g. 7"
                         />
                       </div>
                     </div>
@@ -391,7 +378,7 @@ export default function PrescriptionForm() {
                     loading={mutation.isPending}
                     disabled={medicines.filter((m) => m.name).length === 0}
                   >
-                    Create Prescription
+                    Create Prescription & Send to Pharmacy
                   </Button>
                 </div>
               </div>

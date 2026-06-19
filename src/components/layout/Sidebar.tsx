@@ -3,6 +3,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 import {
   IconChart,
   IconClipboard,
+  IconClock,
   IconDashboard,
   IconFlask,
   IconList,
@@ -40,6 +41,12 @@ const allNavItems: NavItem[] = [
     label: "Patient List",
     icon: <IconList />,
     permission: "view_patient",
+  },
+  {
+    to: "/reception/history",
+    label: "Patient History",
+    icon: <IconClock />,
+    permission: "view_patient_history",
   },
   {
     to: "/reception/payments",
@@ -88,6 +95,12 @@ const allNavItems: NavItem[] = [
     label: "Radiology Results",
     icon: <IconScan />,
     permission: "create_radiology_result",
+  },
+  {
+    to: "/pharmacy/prescriptions",
+    label: "Prescriptions",
+    icon: <IconPill />,
+    permission: "dispense_medicine",
   },
   {
     to: "/admin/users",

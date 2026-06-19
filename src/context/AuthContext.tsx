@@ -21,6 +21,8 @@ const PERMISSIONS: Record<Role, string[]> = {
     "manage_users",
     "manage_tests",
     "view_reports",
+    "view_patient_history",
+    "dispense_medicine",
   ],
   reception: ["create_patient", "process_payment", "view_patient"],
   opd: [
@@ -28,6 +30,7 @@ const PERMISSIONS: Record<Role, string[]> = {
     "create_investigation_order",
     "create_prescription",
     "view_investigation_order",
+    "view_patient_history",
   ],
   lab: ["view_investigation_order", "create_lab_result", "view_patient"],
   radiology: [
@@ -35,6 +38,7 @@ const PERMISSIONS: Record<Role, string[]> = {
     "create_radiology_result",
     "view_patient",
   ],
+  pharmacy: ["dispense_medicine"],
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);

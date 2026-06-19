@@ -15,8 +15,10 @@ import Login from "./pages/Login";
 import InvestigationOrderForm from "./pages/opd/InvestigationOrderForm";
 import PatientQueue from "./pages/opd/PatientQueue";
 import PrescriptionForm from "./pages/opd/PrescriptionForm";
+import PharmacyPrescriptions from "./pages/pharmacy/PrescriptionList";
 import RadiologyOrders from "./pages/radiology/RadiologyOrders";
 import RadiologyResultEntry from "./pages/radiology/RadiologyResultEntry";
+import PatientHistory from "./pages/reception/PatientHistory";
 import PatientList from "./pages/reception/PatientList";
 import PatientRegistration from "./pages/reception/PatientRegistration";
 import PaymentProcessing from "./pages/reception/PaymentProcessing";
@@ -48,8 +50,16 @@ export default function App() {
                 <Route
                   path="/reception/patients"
                   element={
-                    <RoleGuard allowedRoles={["reception", "admin"]}>
+                    <RoleGuard allowedRoles={["reception", "admin", "opd"]}>
                       <PatientList />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/reception/history"
+                  element={
+                    <RoleGuard allowedRoles={["admin", "opd"]}>
+                      <PatientHistory />
                     </RoleGuard>
                   }
                 />
@@ -120,6 +130,14 @@ export default function App() {
                   element={
                     <RoleGuard allowedRoles={["radiology", "admin"]}>
                       <RadiologyResultEntry />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="/pharmacy/prescriptions"
+                  element={
+                    <RoleGuard allowedRoles={["pharmacy", "admin"]}>
+                      <PharmacyPrescriptions />
                     </RoleGuard>
                   }
                 />

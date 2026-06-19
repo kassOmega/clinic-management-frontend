@@ -1,4 +1,10 @@
-export type Role = "admin" | "reception" | "opd" | "lab" | "radiology";
+export type Role =
+  | "admin"
+  | "reception"
+  | "opd"
+  | "lab"
+  | "radiology"
+  | "pharmacy";
 
 export type PatientStatus =
   | "REGISTERED"
@@ -26,6 +32,7 @@ export type TestType = "lab" | "radiology";
 export type PaymentStatus = "PENDING" | "PAID";
 
 export type PaymentType = "registration" | "investigation";
+export type PrescriptionStatus = "PENDING" | "DISPENSED";
 
 export interface User {
   id: number;
@@ -106,16 +113,6 @@ export interface RadiologyResult {
   createdBy: number;
 }
 
-export interface Prescription {
-  id: number;
-  patientId: number;
-  orderId: number;
-  medicines: PrescriptionMedicine[];
-  notes: string;
-  createdAt: string;
-  createdBy: number;
-}
-
 export interface PrescriptionMedicine {
   name: string;
   dosage: string;
@@ -133,6 +130,16 @@ export interface Payment {
   createdAt: string;
   processedBy: number;
 }
+export interface Prescription {
+  id: number;
+  patientId: number;
+  orderId: number;
+  medicines: PrescriptionMedicine[];
+  notes: string;
+  status: PrescriptionStatus;
+  createdAt: string;
+  createdBy: number;
+}
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Administrator",
@@ -140,6 +147,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   opd: "OPD Doctor",
   lab: "Lab Technician",
   radiology: "Radiologist",
+  pharmacy: "Pharmacist",
 };
 
 export const PATIENT_STATUS_LABELS: Record<PatientStatus, string> = {
