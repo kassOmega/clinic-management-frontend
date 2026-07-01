@@ -14,6 +14,7 @@ import { type TestType } from "../../types";
 
 interface FormData {
   name: string;
+  id: string;
   type: TestType;
   price: number;
   unit: string;
@@ -24,7 +25,8 @@ interface FormData {
 
 const emptyForm: FormData = {
   name: "",
-  type: "lab",
+  id: "",
+  type: "lab" as TestType,
   price: 0,
   unit: "",
   referenceRange: "",
@@ -52,9 +54,12 @@ export default function TestManagement() {
         (t) => t.name === form.name && t.type === form.type,
       );
       if (existing) {
-        await api.updateTest(existing.id, form);
+        await api.updateTest(existing.id, { ...form } as Record<
+          string,
+          unknown
+        >);
       } else {
-        await api.createTest(form);
+        await api.createTest({ ...form } as Record<string, unknown>);
       }
     },
     onSuccess: () => {
@@ -269,6 +274,12 @@ export default function TestManagement() {
         title="Add Test"
       >
         <div className="space-y-4">
+          <Input
+            label="Test ID"
+            value={form.id}
+            onChange={(e) => setForm((p) => ({ ...p, id: e.target.value }))}
+            placeholder="e.g. L7 or R6"
+          />
           <Input
             label="Test Name"
             value={form.name}

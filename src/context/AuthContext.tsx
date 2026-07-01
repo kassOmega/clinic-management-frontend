@@ -1,9 +1,15 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Role, User } from "../types";
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (response: User & { accessToken: string }) => void;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -44,10 +50,23 @@ const PERMISSIONS: Record<Role, string[]> = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem("clinic_user");
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  const login = (u: User) => setUser(u);
-  const logout = () => setUser(null);
+  const login = (responseData: User & { accessToken: string }) => {
+    const { accessToken, ...userData } = responseData;
+    localStorage.setItem("access_token", accessToken);
+    localStorage.setItem("clinic_user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("clinic_user");
+    setUser(null);
+  };
 
   const hasPermission = (permission: string) => {
     if (!user) return false;
@@ -64,5 +83,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+
+  // Fall back to localStorage when React state hasn't flushed yet
+  // This happens during login → navigate when AppLayout renders before setUser propagates
+  const user = useMemo(() => {
+    if (ctx.user) return ctx.user;
+    try {
+      const stored = localStorage.getItem("clinic_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }, [ctx.user]);
+
+  return { ...ctx, user };
 }

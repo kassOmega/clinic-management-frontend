@@ -93,11 +93,11 @@ export default function Dashboard() {
     );
 
   const pieData = Object.entries(stats.patientsByStatus || {})
-    .map(([status, pts]) => ({
+    .map(([status, count]) => ({
       name:
         PATIENT_STATUS_LABELS[status as keyof typeof PATIENT_STATUS_LABELS] ||
         status,
-      value: (pts as any[]).length,
+      value: count as number,
     }))
     .filter((d) => d.value > 0);
 

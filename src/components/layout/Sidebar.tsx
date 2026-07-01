@@ -149,7 +149,7 @@ export function Sidebar({ open, onClose }: Props) {
             </div>
             <div>
               <h1 className="text-white font-bold text-sm font-[family-name:var(--font-display)]">
-                MedFlow
+                Kass
               </h1>
               <p className="text-slate-500 text-[10px] uppercase tracking-wider">
                 Clinic Management
@@ -204,7 +204,7 @@ function SidebarContent({ items }: { items: NavItem[] }) {
         </div>
         <div>
           <h1 className="text-white font-bold text-sm font-[family-name:var(--font-display)]">
-            MedFlow
+            Kass
           </h1>
           <p className="text-slate-500 text-[10px] uppercase tracking-wider">
             Clinic Management

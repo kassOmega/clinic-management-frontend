@@ -42,13 +42,14 @@ export default function InvestigationOrderForm() {
     queryKey: ["patients"],
     queryFn: api.getPatients,
   });
+  const { data: queuePatients } = useQuery({
+    queryKey: ["queue_patients"],
+    queryFn: api.getQueuePatients,
+  });
   const { data: testCatalog } = useQuery({
     queryKey: ["testCatalog"],
     queryFn: api.getTestCatalog,
   });
-
-  const queuePatients =
-    patients?.filter((p) => p.status === "REGISTRATION_PAID") || [];
 
   // Existing order data when adding tests
   const existingOrder = useQuery({
@@ -108,7 +109,7 @@ export default function InvestigationOrderForm() {
       });
 
       if (isAddingToExisting) {
-        await api.addTestsToOrder(Number(existingOrderId), newTests, user!.id);
+        await api.addTestsToOrder(Number(existingOrderId), newTests);
       } else {
         const patientId = Number(selectedPatientId);
         const createdOrder = await api.createOrder({

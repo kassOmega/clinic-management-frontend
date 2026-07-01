@@ -11,10 +11,21 @@ import { useToast } from "../../context/ToastContext";
 import { api } from "../../services/api";
 import { ROLE_LABELS, type Role } from "../../types";
 
+type ApiUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  phone: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
 interface FormData {
   name: string;
   email: string;
   role: Role;
+  password: string;
   phone: string;
 }
 
@@ -28,6 +39,7 @@ export default function UserManagement() {
     email: "",
     role: "reception",
     phone: "",
+    password: "",
   });
 
   const { data: users } = useQuery({
@@ -37,17 +49,24 @@ export default function UserManagement() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm({ name: "", email: "", role: "reception", phone: "" });
+    setForm({
+      name: "",
+      email: "",
+      role: "reception",
+      phone: "",
+      password: "",
+    });
     setModalOpen(true);
   };
 
-  const openEdit = (user: FormData & { id: number }) => {
+  const openEdit = (user: ApiUser) => {
     setEditId(user.id);
     setForm({
       name: user.name,
       email: user.email,
       role: user.role,
       phone: user.phone,
+      password: "",
     });
     setModalOpen(true);
   };
@@ -55,7 +74,10 @@ export default function UserManagement() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editId) {
-        await api.updateUser(editId, form);
+        await api.createUser({ ...form, active: true } as Record<
+          string,
+          unknown
+        >);
       } else {
         await api.createUser({ ...form, active: true });
       }
@@ -221,6 +243,15 @@ export default function UserManagement() {
             value={form.phone}
             onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
             placeholder="09XXXXXXXX"
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, password: e.target.value }))
+            }
+            placeholder="Minimum 6 characters"
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setModalOpen(false)}>
